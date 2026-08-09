@@ -1,3 +1,10 @@
+agas01:masuk123
+agas02:masuk123
+agas03:masuk123
+agas04:masuk123
+agas05:masuk123
+agas06:masuk123
+agas07:masuk123
 acep01:masuk123
 acep02:masuk123
 acep03:masuk123

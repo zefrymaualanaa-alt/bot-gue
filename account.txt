@@ -1,3 +1,8 @@
+bot06:masuk123
+bot07:masuk123
+bot08:masuk123
+bot09:masuk123
+bot10:masuk123
 bot01:masuk123
 bot02:masuk123
 bot03:masuk123

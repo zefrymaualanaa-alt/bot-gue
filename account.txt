@@ -1,5 +1,5 @@
-sistem01:masuk123
-sistem02:masuk123
-sistem03:masuk123
-sistem04:masuk123
-sistem05:masuk123
+bot01:masuk123
+bot02:masuk123
+bot03:masuk123
+bot04:masuk123
+bot05:masuk123

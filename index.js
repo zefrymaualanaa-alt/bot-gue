@@ -137,7 +137,7 @@ function getCountryDetail(countryCode) {
         'PG': { name: 'Papua New Guinea', flag: '🇵🇬' }
     };
 
-    return countryMap[code] || { name: code, flag: '🏳️' };
+    return countryMap[code] || { name: code, flag: '' };
 }
 
 // --- HELPER FUNCTION GENERATOR ---

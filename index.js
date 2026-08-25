@@ -941,15 +941,18 @@ bot.command('ceklimit', async (ctx) => {
             context = await globalBrowser.newContext();
             page = await context.newPage();
             
-            // Login ke Kxntu
-            await page.goto('https://kxntu.com/login', { waitUntil: 'networkidle', timeout: 30000 });
+            // Login ke Kxntu (FIX TERBARU)
+            await page.goto('https://kxntu.com/login', { waitUntil: 'domcontentloaded', timeout: 60000 });
+            await page.waitForTimeout(2000);
             await page.fill('#l-username', acc.username);
             await page.fill('#l-password', acc.password);
             await page.click('button[type="submit"].btn-primary');
-            await page.waitForLoadState('networkidle', { timeout: 30000 });
+            await page.waitForLoadState('domcontentloaded', { timeout: 60000 });
+            await page.waitForTimeout(2000);
 
-            // Menuju halaman generar
-            await page.goto('https://kxntu.com/generar', { waitUntil: 'networkidle', timeout: 30000 });
+            // Menuju halaman generar (FIX TERBARU)
+            await page.goto('https://kxntu.com/generar', { waitUntil: 'domcontentloaded', timeout: 60000 });
+            await page.waitForTimeout(2000);
             
             // 4. Proses Scrape Label Limit
             // Mengekstrak semua kotak info yang ada di Kxntu
@@ -996,7 +999,14 @@ bot.command('hit', async (ctx) => {
     
     const users = loadUsers();
     const userRecord = users.find(u => u.id.toString() === currentUserId);
-    const isVip = userRecord ? userRecord.isVip === true : false;
+    
+    // Cek apakah VIP masih aktif (jika ada masa berlakunya)
+    let isVip = false;
+    if (userRecord && userRecord.isVip === true) {
+        if (!userRecord.vipExpiredAt || new Date() < new Date(userRecord.vipExpiredAt)) {
+            isVip = true;
+        }
+    }
 
     if (!isOwner && !isVip) {
         return ctx.reply('❌ *Akses Ditolak:*\nCommand ini khusus Owner dan user VIP.', { parse_mode: 'Markdown' });
@@ -1135,13 +1145,17 @@ async function processNextHit() {
                 context = await globalBrowser.newContext();
                 page = await context.newPage();
 
-                await page.goto('https://kxntu.com/login', { waitUntil: 'networkidle' });
+                // FIX TERBARU - Anti Spaming & Cloudflare Bypass Method
+                await page.goto('https://kxntu.com/login', { waitUntil: 'domcontentloaded', timeout: 60000 });
+                await page.waitForTimeout(2000); // Jeda extra biar form sempurna muncul
                 await page.fill('#l-username', account.username);
                 await page.fill('#l-password', account.password); 
                 await page.click('button[type="submit"].btn-primary');
-                await page.waitForLoadState('networkidle');
+                await page.waitForLoadState('domcontentloaded', { timeout: 60000 });
+                await page.waitForTimeout(2000);
 
-                await page.goto('https://kxntu.com/generar', { waitUntil: 'networkidle' });
+                await page.goto('https://kxntu.com/generar', { waitUntil: 'domcontentloaded', timeout: 60000 });
+                await page.waitForTimeout(2000);
 
                 let iterasiAkun = 0;
                 let consecutiveDuplicates = 0; // 🌟 PELACAK DUPLIKAT BERTURUT-TURUT (ANTI-STUCK)
@@ -1224,7 +1238,7 @@ async function processNextHit() {
                         plan: hitPlan 
                     });
                     
-// Update progress angka untuk /cekantrian
+                    // Update progress angka untuk /cekantrian
                     currentTaskDetail.currentCount = allResults.length;
                 } 
                 
@@ -1293,22 +1307,29 @@ async function processNextHit() {
                 inlineButtons.push([Markup.button.callback(`🔄 Auto-Retry Sisa Target (${sisaTarget} Target)`, `retry_hit_${sisaTarget}`)]);
             }
 
+            // 1. Kirim Ringkasan sebagai Teks Biasa (Aman dari limit caption dokumen Telegram)
+            await ctx.reply(
+                `<b>[ AGASTRA ENTERPRISE - RESULT SUMMARY ]</b>\n` +
+                `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
+                `<i>Harvested database results package summary report.</i>\n\n` +
+                `<blockquote>` +
+                `<b>Total Cookies Live :</b> <code>${allResults.length} Cookies Harvested</code>\n` +
+                `<b>Countries Hit   :</b> <code>${countriesSummary || 'Global / UN'}</code>\n` +
+                `<b>Plan Breakdown  :</b> <code>${plansSummary || 'Netflix Plan'}</code>\n` +
+                `<b>Package Status  :</b> <code>Secured & Verified Live</code>\n` +
+                `</blockquote>\n\n` +
+                `English 🇬🇧 :\n` +
+                `<i>Successfully hit cookies, if you want to tidy up the cookie format and check live/dead cookies, please forward this file to the bot @netflixcookieess_bot so that it can be automatically sorted.</i>\n\n` +
+                `Indonesian 🇮🇩 :\n` +
+                `<i>Berhasil hit cookies, jika ingin merapihkan format cookies dan cek cookies live/dead silahkan forward file ini ke bot @netflixcookieess_bot agar otomatis di sortir</i>`,
+                { parse_mode: 'HTML' }
+            );
+
+            // 2. Kirim Dokumennya dengan Caption Singkat + Tombol Interaktif
             await ctx.replyWithDocument(
                 { source: fileBuffer, filename: 'hasil_hit_cookies_live.txt' }, 
                 { 
-                    caption: `<b>[ AGASTRA ENTERPRISE - RESULT SUMMARY ]</b>\n` +
-                             `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
-                             `<i>Harvested database results package summary report.</i>\n\n` +
-                             `<blockquote>` +
-                             `<b>Total Cookies Live :</b> <code>${allResults.length} Cookies Harvested</code>\n` +
-                             `<b>Countries Hit   :</b> <code>${countriesSummary || 'Global / UN'}</code>\n` +
-                             `<b>Plan Breakdown  :</b> <code>${plansSummary || 'Netflix Plan'}</code>\n` +
-                             `<b>Package Status  :</b> <code>Secured & Verified Live</code>\n` +
-                             `</blockquote>\n\n` +
-                             `English 🇬🇧 :\n` +
-                             `<i>Successfully hit cookies, if you want to tidy up the cookie format and check live/dead cookies, please forward this file to the bot @netflixcookieess_bot so that it can be automatically sorted.</i>\n\n` +
-                             `Indonesian 🇮🇩 :\n` +
-                             `<i>Berhasil hit cookies, jika ingin merapihkan format cookies dan cek cookies live/dead silahkan forward file ini ke bot @netflixcookieess_bot agar otomatis di sortir</i>`,
+                    caption: `📁 <b>File Hasil Hit Cookies Live (${allResults.length} Akun)</b>`,
                     parse_mode: 'HTML',
                     ...Markup.inlineKeyboard(inlineButtons)
                 }
@@ -1327,7 +1348,7 @@ async function processNextHit() {
         await notifyOwnerError(ctx, "Sistem processNextHit (Global)", error);
         await ctx.reply(`❌ *Terjadi Kesalahan Kritis:*\n${error.message}`, { parse_mode: 'Markdown' });
     } finally {
-        // 🌟 RESET STATUS PADA KHIR PROSES SEBELUM MEMANGGIL TUGAS BERIKUTNYA
+        // 🌟 RESET STATUS PADA AKHIR PROSES SEBELUM MEMANGGIL TUGAS BERIKUTNYA
         isProcessingHit = false;
         currentTaskDetail = null;
 
@@ -1337,36 +1358,96 @@ async function processNextHit() {
         }
     }
 }
+
+// ==========================================================
+// 🌟 COMMAND /ADDVIP DENGAN DURASI (CONTOH: /addvip @user 30d ATAU lifetime)
+// ==========================================================
 bot.command('addvip', async (ctx) => {
-    // Pastikan cuma Owner yang bisa nambahin VIP
     if (ctx.from.id.toString() !== OWNER_ID.toString()) {
         return ctx.reply("❌ *Akses Ditolak! Perintah ini khusus Owner.*", { parse_mode: 'Markdown' });
     }
 
-    // Ambil argumen dari pesan (contoh: /addvip @Agastra)
     const args = ctx.message.text.split(' ');
-    if (args.length < 2) {
-        return ctx.reply("⚠️ *Format Salah!*\nGunakan: `/addvip @username` atau `/addvip ID_TELEGRAM`", { parse_mode: 'Markdown' });
+    if (args.length < 3) {
+        return ctx.reply("⚠️ *Format Salah!*\n\nGunakan format:\n`/addvip @username [durasi]`\n\n*Contoh Durasi:*\n• `30d` (30 Hari)\n• `2m` atau `2b` (2 Bulan)\n• `lifetime` (Selamanya)", { parse_mode: 'Markdown' });
     }
 
-    let target = args[1].replace('@', ''); // Hapus logo @ jika ada
-    let users = loadUsers();
+    let target = args[1].replace('@', ''); // Hapus '@'
+    let durationInput = args[2].toLowerCase();
     
-    // Cari user di database users.json berdasarkan username (mengabaikan huruf besar/kecil) atau berdasarkan ID Telegram
+    let users = loadUsers();
     let userIndex = users.findIndex(u => 
         (u.username && u.username.replace('@', '').toLowerCase() === target.toLowerCase()) || 
         u.id.toString() === target
     );
 
-    if (userIndex !== -1) {
-        // Tambahkan atribut isVip = true ke data user tersebut
-        users[userIndex].isVip = true;
-        fs.writeFileSync(USER_DB_FILE, JSON.stringify(users, null, 2));
-        
-        return ctx.reply(`✅ *BERHASIL!*\nUser 👤 ${users[userIndex].username} (ID: \`${users[userIndex].id}\`) telah ditambahkan sebagai *VIP (Lifetime)*.\n\nSekarang dia sudah punya akses untuk menggunakan fitur /hit.`, { parse_mode: 'Markdown' });
-    } else {
-        return ctx.reply(`❌ *User tidak ditemukan di database!*\nPastikan user tersebut sudah pernah klik /start di bot ini sebelumnya biar datanya terekam.`, { parse_mode: 'Markdown' });
+    if (userIndex === -1) {
+        return ctx.reply(`❌ *User tidak ditemukan di database!*\nPastikan user tersebut sudah pernah klik /start di bot ini sebelumnya.`, { parse_mode: 'Markdown' });
     }
+
+    let expiredDate = null;
+    let durationText = "";
+
+    if (durationInput === 'lifetime') {
+        expiredDate = null;
+        durationText = "Selamanya (Lifetime)";
+    } else {
+        let days = 0;
+        const matchDays = durationInput.match(/^(\d+)d$/);
+        const matchMonths = durationInput.match(/^(\d+)(m|b)$/);
+
+        if (matchDays) {
+            days = parseInt(matchDays[1]);
+        } else if (matchMonths) {
+            days = parseInt(matchMonths[1]) * 30;
+        } else {
+            return ctx.reply("⚠️ *Format durasi tidak valid!*\nGunakan format seperti `30d` untuk hari atau `2m` untuk bulan.", { parse_mode: 'Markdown' });
+        }
+
+        expiredDate = new Date();
+        expiredDate.setDate(expiredDate.getDate() + days);
+        durationText = expiredDate.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
+    }
+
+    // Set Status VIP dan Tanggal Expired
+    users[userIndex].isVip = true;
+    users[userIndex].vipExpiredAt = expiredDate ? expiredDate.toISOString() : null;
+    fs.writeFileSync(USER_DB_FILE, JSON.stringify(users, null, 2));
+
+    ctx.reply(`✅ <b>BERHASIL MENAMBAHKAN VIP!</b>\n──────────────────────────\n👤 <b>User:</b> <code>${users[userIndex].username}</code>\n🆔 <b>ID:</b> <code>${users[userIndex].id}</code>\n⏳ <b>Masa Aktif VIP:</b> <b>${durationText}</b>`, { parse_mode: 'HTML' });
+});
+
+// ==========================================================
+// 🌟 COMMAND /DELVIP UNTUK MENGHAPUS STATUS VIP USER
+// ==========================================================
+bot.command('delvip', async (ctx) => {
+    if (ctx.from.id.toString() !== OWNER_ID.toString()) {
+        return ctx.reply("❌ *Akses Ditolak! Perintah ini khusus Owner.*", { parse_mode: 'Markdown' });
+    }
+
+    const args = ctx.message.text.split(' ');
+    if (args.length < 2) {
+        return ctx.reply("⚠️ *Format Salah!*\n\nGunakan format:\n`/delvip @username` atau `/delvip ID_TELEGRAM`", { parse_mode: 'Markdown' });
+    }
+
+    let target = args[1].replace('@', '');
+    let users = loadUsers();
+    
+    let userIndex = users.findIndex(u => 
+        (u.username && u.username.replace('@', '').toLowerCase() === target.toLowerCase()) || 
+        u.id.toString() === target
+    );
+
+    if (userIndex === -1) {
+        return ctx.reply(`❌ *User tidak ditemukan di database!*`, { parse_mode: 'Markdown' });
+    }
+
+    // Hapus status VIP
+    users[userIndex].isVip = false;
+    delete users[userIndex].vipExpiredAt;
+    fs.writeFileSync(USER_DB_FILE, JSON.stringify(users, null, 2));
+
+    ctx.reply(`✅ <b>BERHASIL MENCABUT STATUS VIP!</b>\n──────────────────────────\n👤 <b>User:</b> <code>${users[userIndex].username}</code>\n🆔 <b>ID:</b> <code>${users[userIndex].id}</code>\n❌ Status VIP telah dihapus dari sistem.`, { parse_mode: 'HTML' });
 });
 
 bot.command('bc', async (ctx) => {
@@ -1637,7 +1718,7 @@ bot.on('text', async (ctx) => {
     const jamCek = now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false, timeZone: 'Asia/Jakarta' });
 
     const cardLayout = 
-        `🚨 𝐒𝐔𝐂𝐂𝐄𝐒𝐒𝐅𝐔𝐋𝐋𝐘 𝐁𝐘𝐏𝐀𝐒𝐒𝐄𝐃 𝐍𝐄𝐓𝐅𝐋𝐈𝐗 𝐀𝐂𝐂𝐎𝐔𝐍𝐓, 𝐘𝐎𝐔registered_R 𝐍𝐄𝐓𝐅𝐋𝐈𝐗 𝐀𝐂𝐂𝐎𝐔𝐍𝐓 𝐃𝐄𝐓𝐀𝐈𝐋𝐒 𝐀𝐑𝐄 𝐁𝐄𝐋𝐎𝐖 :\n\n` +
+        `🚨 𝐒𝐔𝐂𝐂𝐄𝐒𝐒𝐅𝐔𝐋𝐋𝐘 𝐁𝐘𝐏𝐀𝐒𝐒𝐄𝐃 𝐍𝐄𝐓𝐅𝐋𝐈𝐗 𝐀𝐂𝐂𝐎𝐔𝐍𝐓, 𝐘𝐎𝐔𝐑 𝐍𝐄𝐓𝐅𝐋𝐈𝐗 𝐀𝐂𝐂𝐎𝐔𝐍𝐓 𝐃𝐄𝐓𝐀𝐈𝐋𝐒 𝐀𝐑𝐄 𝐁𝐄𝐋𝐎𝐖 :\n\n` +
         `<blockquote>` +
         `🟢 <b>Status:</b> ${finalAccStatus}\n` +
         `📩 <b>Email:</b> <code>${finalEmail}</code>\n` +
@@ -1671,10 +1752,19 @@ bot.on('text', async (ctx) => {
 
     await ctx.telegram.deleteMessage(ctx.chat.id, msg.message_id).catch(() => {});
 
+    // 1. Kirim Foto dengan Caption Pendek (Aman dari limit batas Telegram)
     await ctx.replyWithPhoto('https://ibb.co.com/ymDYRmKF', {
-        caption: cardLayout,
+        caption: `🚨 <b>SUCCESSFULLY BYPASSED NETFLIX ACCOUNT</b>\n\n🟢 <b>Status:</b> ${finalAccStatus}\n📩 <b>Email:</b> <code>${finalEmail}</code>\n👑 <b>Plan:</b> ${finalPlan}\n🌍 <b>Country:</b> ${countryTextFormat}\n⚡ <b>Kecepatan:</b> ${duration} detik/cookie\n\n👇 <i>Detail lengkap akun dan tombol login ada di bawah ini:</i>`,
+        parse_mode: 'HTML'
+    });
+
+    // 2. Kirim Detail Lengkap Berserta Tombol Interaktif Secara Terpisah
+    await ctx.reply(cardLayout, {
         parse_mode: 'HTML',
-        ...Markup.inlineKeyboard([[Markup.button.callback('📱 MOBILE', `copy_app_${tokenId}`), Markup.button.callback('💻 PC', `copy_pc_${tokenId}`)], [Markup.button.callback('📺 TV ', `copy_tv_${tokenId}`)]])
+        ...Markup.inlineKeyboard([
+            [Markup.button.callback('📱 MOBILE', `copy_app_${tokenId}`), Markup.button.callback('💻 PC', `copy_pc_${tokenId}`)],
+            [Markup.button.callback('📺 TV ', `copy_tv_${tokenId}`)]
+        ])
     });
 });
 
@@ -1758,7 +1848,7 @@ bot.on('document', async (ctx) => {
                 addConvertScore(ctx.from.id, liveCookiesResults.length);
             }
 
-            // SIMPAN HASIL LINK TO COOKIES KE MEMORI SUPAYA BISA DUGUNAKAN COMMAND /satukan
+            // SIMPAN HASIL LINK TO COOKIES KE MEMORI SUPAYA BISA DIGUNAKAN COMMAND /satukan
             lastBulkResults.set(ctx.from.id, liveCookiesResults);
 
             const summaryText = `<b>📊 BULK CONVERT LINK TO COOKIES COMPLETED</b>\n─────────────────────\n🟢 <b>Berhasil Konversi:</b> ${liveCookiesResults.length} Cookies\n🔴 <b>Gagal/Expired:</b> ${deadLinksResults.length} Link\n📦 <b>Total Diproses:</b> ${linksToProcess.length}`;

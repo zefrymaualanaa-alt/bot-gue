@@ -223,7 +223,7 @@ async function processNextHit() {
         const accounts = readAccountsGen();
         if (accounts.length === 0) return await ctx.reply('❌ File `account.txt` kosong!');
 
-        let statusMsg = await ctx.reply(`🚀 <b>Initializing Hit Process...</b>`, { parse_mode: 'HTML' });
+        let statusMsg = await ctx.reply(`🚀 <b>Menyiapkan proses ekstraksi...</b>`, { parse_mode: 'HTML' });
         const allResults = [];
         let akunDicoba = 0;
 
@@ -238,7 +238,8 @@ async function processNextHit() {
             globalAccountIndex = (globalAccountIndex + 1) % accounts.length; 
             akunDicoba++;
 
-            const layoutScraping = `<b>[ AGASTRA AUTOMATION SYSTEM ]</b>\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n<i>Executing automated data mining sequence...</i>\n\n<blockquote><b>Target Account :</b> <code>${account.username}</code>\n<b>Execution Flow :</b> <code>Node ${akunDicoba} of ${accounts.length}</code>\n<b>Target Quota   :</b> <code>${allResults.length} / ${targetTotal} Valid Account</code>\n</blockquote>\n\n<i>Status: Scraping target database and harvesting session payloads...</i>`;
+            // LAYOUT BARU YANG LEBIH SIMPEL
+            const layoutScraping = `<b>[ STATUS PROSES HIT ]</b>\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n<blockquote><b>Akun Target :</b> <code>${account.username}</code>\n<b>Progres     :</b> <code>Akun ke-${akunDicoba} dari ${accounts.length}</code>\n<b>Didapat     :</b> <code>${allResults.length} / ${targetTotal} Cookies</code>\n</blockquote>\n\n<i>⏳ Status: Sedang login dan memeriksa akun...</i>`;
             await ctx.telegram.editMessageText(ctx.chat.id, statusMsg.message_id, null, layoutScraping, { parse_mode: 'HTML' }).catch(()=>{});
             
             let context = null, page = null;
@@ -282,7 +283,8 @@ async function processNextHit() {
                     allResults.push({ cookie: activeCookie, country: formattedCountry, plan: hitPlan });
                     currentTaskDetail.currentCount = allResults.length;
                     
-                    const layoutProgress = `<b>[ AGASTRA AUTOMATION SYSTEM ]</b>\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n<i>Executing automated data mining sequence...</i>\n\n<blockquote><b>Target Account :</b> <code>${account.username}</code>\n<b>Execution Flow :</b> <code>Node ${akunDicoba} of ${accounts.length}</code>\n<b>Target Quota   :</b> <code>${allResults.length} / ${targetTotal} Valid Account</code>\n</blockquote>\n\n<i>Status: Harvesting active session payloads...</i>`;
+                    // LAYOUT SAAT BERHASIL MENDAPATKAN LINK
+                    const layoutProgress = `<b>[ STATUS PROSES HIT ]</b>\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n<blockquote><b>Akun Target :</b> <code>${account.username}</code>\n<b>Progres     :</b> <code>Akun ke-${akunDicoba} dari ${accounts.length}</code>\n<b>Didapat     :</b> <code>${allResults.length} / ${targetTotal} Cookies</code>\n</blockquote>\n\n<i>⏳ Status: Mengekstrak data cookies...</i>`;
                     await ctx.telegram.editMessageText(ctx.chat.id, statusMsg.message_id, null, layoutProgress, { parse_mode: 'HTML' }).catch(()=>{});
                 } 
             } catch (error) {} 
@@ -324,12 +326,10 @@ async function processNextHit() {
                 { caption: `📁 <b>Hasil Hit: ${allResults.length} Cookies</b>\n\n📌 <i>Format file ini 100% murni cookies raw.</i>`, parse_mode: 'HTML' }
             );
 
-            // LIMIT REMINDER TAMBAHAN JIKA TARGET TIDAK TERPENUHI PENUH
             if (allResults.length < targetTotal) {
                 await ctx.reply(`⚠️ <b>Database akun terkena limit, harap hubungi developer untuk update database.</b>`, { parse_mode: 'HTML' });
             }
         } else {
-            // LIMIT REMINDER KETIKA SAMA SEKALI ZONK / KOSONG
             await ctx.reply(`⚠️ <b>Database akun terkena limit, harap hubungi developer untuk update database.</b>`, { parse_mode: 'HTML' });
         }
     } catch (error) {

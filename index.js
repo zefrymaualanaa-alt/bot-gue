@@ -323,8 +323,14 @@ async function processNextHit() {
                 { source: fileBuffer, filename: 'extracted_cookies_live.txt' }, 
                 { caption: `📁 <b>Hasil Hit: ${allResults.length} Cookies</b>\n\n📌 <i>Format file ini 100% murni cookies raw.</i>`, parse_mode: 'HTML' }
             );
+
+            // LIMIT REMINDER TAMBAHAN JIKA TARGET TIDAK TERPENUHI PENUH
+            if (allResults.length < targetTotal) {
+                await ctx.reply(`⚠️ <b>Database akun terkena limit, harap hubungi developer untuk update database.</b>`, { parse_mode: 'HTML' });
+            }
         } else {
-            await ctx.reply(`⚠️ <b>Proses Selesai: Tidak ada link valid atau limit Kxntu habis.</b>`, { parse_mode: 'HTML' });
+            // LIMIT REMINDER KETIKA SAMA SEKALI ZONK / KOSONG
+            await ctx.reply(`⚠️ <b>Database akun terkena limit, harap hubungi developer untuk update database.</b>`, { parse_mode: 'HTML' });
         }
     } catch (error) {
         await ctx.reply(`❌ *Kesalahan Kritis:*\n${error.message}`, { parse_mode: 'Markdown' });

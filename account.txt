@@ -1,8 +1,6 @@
-ucup01:masuk123
-ucup02:masuk123
-ucup03:masuk123
-panglima01:masuk123
-panglima02:masuk123
-panglima03:masuk123
-panglima04:masuk123
-job02:masuk123
+wel01:masuk123
+new01:masuk123
+new02:masuk123
+new03:masuk123
+new04:masuk123
+new05:masuk123

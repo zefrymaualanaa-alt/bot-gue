@@ -200,7 +200,7 @@ bot.command('hit', async (ctx) => {
     const args = ctx.message.text.split(' ');
     if (args.length < 2 || isNaN(parseInt(args[1]))) return ctx.reply('⚠️ *Format salah!*\nGunakan: `/hit <jumlah>`\nContoh: `/hit 5`', { parse_mode: 'Markdown' });
     
-    let targetTotal = parseInt(args[1]) === 0 || parseInt(args[1]) > 50 ? 50 : parseInt(args[1]);
+    let targetTotal = parseInt(args[1]) === 0 || parseInt(args[1]) > 100 ? 100 : parseInt(args[1]);
 
     if (hitQueue.some(t => t.userId === currentUserId) || (currentTaskDetail && currentTaskDetail.userId === currentUserId)) {
         return ctx.reply('⏳ <b>KAMU TELAH MENGANTRI!</b>\nSilakan tunggu prosesmu selesai.', { parse_mode: 'HTML' });

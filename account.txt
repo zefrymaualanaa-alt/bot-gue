@@ -1,3 +1,8 @@
+ler01:masuk123
+ler02:masuk123
+ler03:masuk123
+ler04:masuk123
+ler05:masuk123
 nisa01:masuk123
 nisa02:masuk123
 nisa03:masuk123

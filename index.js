@@ -461,7 +461,10 @@ async function processNextHit() {
 
     try {
         const accounts = readAccountsGen();
-        if (accounts.length === 0) return await ctx.reply('❌ <b>Error:</b> Database `account.txt` kosong atau tidak ditemukan.', { parse_mode: 'HTML' });
+        if (accounts.length === 0) {
+            bot.telegram.sendMessage(OWNER_ID, '⚠️ <b>ALERT OWNER:</b> Database <code>account.txt</code> kosong atau habis saat mau digunakan!', { parse_mode: 'HTML' }).catch(()=>{});
+            return await ctx.reply('❌ <b>Error:</b> Database `account.txt` kosong atau tidak ditemukan.', { parse_mode: 'HTML' });
+        }
 
         let statusMsg = await ctx.reply(`🚀 <b>Inisialisasi mesin ekstraktor dimulai...</b>`, { parse_mode: 'HTML' });
         const allResults = [];
@@ -505,6 +508,7 @@ async function processNextHit() {
 
                 let startHitTime = Date.now();
                 let lastLink = ''; 
+                let duplicateRetries = 0; // Tambahan variabel pembatas
 
                 while (true) {
                     if (targetTotal > 0 && allResults.length >= targetTotal) break;
@@ -516,9 +520,12 @@ async function processNextHit() {
                     if (!link) break; 
                     
                     if (link === lastLink) {
+                        duplicateRetries++;
+                        if (duplicateRetries >= 5) break; // Keluar paksa jika macet 5x
                         await page.waitForTimeout(1000);
                         continue;
                     }
+                    duplicateRetries = 0; // Reset jika link baru berhasil didapat
                     lastLink = link;
 
                     if (await checkPartnerGen(page)) { await page.waitForTimeout(500); continue; }
@@ -611,9 +618,11 @@ async function processNextHit() {
                 await ctx.reply(`⚠️ <b>Informasi:</b> Target ${targetTotal} data tidak terpenuhi sepenuhnya. Sistem hanya berhasil mengekstrak ${allResults.length} data hidup (sisa akun di database mati/limit).`, { parse_mode: 'HTML' });
             }
         } else {
+            bot.telegram.sendMessage(OWNER_ID, `⚠️ <b>ALERT OWNER:</b> Ekstraksi gagal total. Kemungkinan akun limit atau struktur web berubah.`, { parse_mode: 'HTML' }).catch(()=>{});
             await ctx.reply(`⚠️ <b>Kegagalan Sistem:</b> Tidak berhasil menarik cookie sama sekali. Pastikan akun di dalam database valid atau struktur web generator belum berubah.`, { parse_mode: 'HTML' });
         }
     } catch (error) {
+        bot.telegram.sendMessage(OWNER_ID, `❌ <b>SYSTEM ERROR:</b>\n<code>${error.message}</code>`, { parse_mode: 'HTML' }).catch(()=>{});
         await ctx.reply(`❌ <b>Kesalahan Fatal Sistem:</b>\n<code>${error.message}</code>`, { parse_mode: 'HTML' });
     } finally {
         if (browser) await browser.close().catch(()=>{});

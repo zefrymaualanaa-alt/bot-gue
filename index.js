@@ -499,12 +499,16 @@ async function processNextHit() {
                 });
                 page = await context.newPage();
                 
-                await page.goto('https://kxntu.com/login', { waitUntil: 'networkidle', timeout: 45000 });
+                await page.goto('https://kxntu.com/login', { waitUntil: 'domcontentloaded', timeout: 30000 });
                 await page.fill('#l-username', account.username);
                 await page.fill('#l-password', account.password); 
-                await page.click('button[type="submit"].btn-primary');
-                await page.waitForLoadState('networkidle', { timeout: 45000 });
-                await page.goto('https://kxntu.com/generar', { waitUntil: 'networkidle', timeout: 45000 });
+
+                await Promise.all([
+                    page.waitForNavigation({ waitUntil: 'domcontentloaded', timeout: 30000 }).catch(() => {}),
+                    page.click('button[type="submit"].btn-primary')
+                ]);
+
+                await page.goto('https://kxntu.com/generar', { waitUntil: 'domcontentloaded', timeout: 30000 });
 
                 let startHitTime = Date.now();
                 let lastLink = ''; 
@@ -514,7 +518,7 @@ async function processNextHit() {
                     if (targetTotal > 0 && allResults.length >= targetTotal) break;
                     
                     await page.click('#btn-link');
-                    await page.waitForTimeout(2000); 
+                    await page.waitForTimeout(800); 
 
                     const link = await getLinkFromCodeboxGen(page);
                     if (!link) break; 
@@ -577,6 +581,14 @@ async function processNextHit() {
                 } 
             } catch (error) {
                 console.log(`[Error Ekstraktor] Akun ${account.username}:`, error.message);
+                const layoutError = `<b>[ STATUS PROSES HIT ]</b>\n` +
+`<pre>[Sistem] Melewati akun bermasalah...
+[Target] Memproses akun ke-${akunDicoba} dari ${accounts.length}
+[Akun]   Gagal diakses: ${account.username}
+[Aksi]   ⚠️ [SKIP] Timeout / Web Error / Akun Mati
+[Result] Terkumpul: ${allResults.length} / ${targetTotal} Sesi</pre>`;
+                await ctx.telegram.editMessageText(ctx.chat.id, statusMsg.message_id, null, layoutError, { parse_mode: 'HTML' }).catch(()=>{});
+                await new Promise(r => setTimeout(r, 1500));
             } 
             finally { if (page) await page.close().catch(()=>{}); if (context) await context.close().catch(()=>{}); }
         } 

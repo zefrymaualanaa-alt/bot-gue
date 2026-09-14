@@ -11,7 +11,7 @@ let isProcessingHit = false;
 let currentTaskDetail = null;
 let globalAccountIndex = 0;
 const userStates = {}; 
-const renameCache = {}; // Cache untuk fitur rebranding
+const renameCache = {};
 
 // --- DATABASE & SETTING OWNER ---
 const USER_DB_FILE = 'users.json'; 
@@ -38,9 +38,7 @@ function loadStats() {
 }
 
 function saveStats() {
-    try {
-        fs.writeFileSync(STATS_FILE, JSON.stringify(systemStats, null, 2));
-    } catch (e) {}
+    try { fs.writeFileSync(STATS_FILE, JSON.stringify(systemStats, null, 2)); } catch (e) {}
 }
 loadStats();
 
@@ -100,7 +98,8 @@ function readAccountsGen() {
 
 async function getLinkFromCodeboxGen(page) {
     try {
-        await page.waitForSelector('.codebox', { timeout: 30000, state: 'visible' });
+        // TIMEOUT DIPERKECIL KE 5 DETIK UNTUK SKIP AKUN LIMIT DENGAN CEPAT
+        await page.waitForSelector('.codebox', { timeout: 5000, state: 'visible' });
         const link = await page.$eval('.codebox code', el => el.textContent.trim());
         if (link && link.startsWith('http')) return link;
         return null;
@@ -255,28 +254,19 @@ function handleHitQueue(ctx, currentUserId, targetTotal) {
 // --- COMMANDS BOT ---
 bot.start(async (ctx) => {
     saveUser(ctx, ctx.from.id, ctx.from.username ? `@${ctx.from.username}` : ctx.from.first_name);
-
     const welcomeText = generateWelcomeText(ctx);
-
     ctx.reply(welcomeText, { 
         parse_mode: 'HTML',
         reply_markup: {
             inline_keyboard: [
-                [
-                    buildBtn('🚀 RUN SYSTEM', 'action_run_bot', 'success'), 
-                    buildBtn('🌟 CEK ANTRIAN', 'action_cek_antrian', 'primary')
-                ],
-                [
-                    buildBtn('📖 MENU FITUR', 'action_menu_bot', 'danger')
-                ]
+                [buildBtn('🚀 RUN SYSTEM', 'action_run_bot', 'success'), buildBtn('🌟 CEK ANTRIAN', 'action_cek_antrian', 'primary')],
+                [buildBtn('📖 MENU FITUR', 'action_menu_bot', 'danger')]
             ]
         }
     });
 });
 
-bot.command('cekantrian', (ctx) => {
-    handleCekAntrian(ctx);
-});
+bot.command('cekantrian', (ctx) => handleCekAntrian(ctx));
 
 bot.command('hit', async (ctx) => {
     const currentUserId = ctx.from.id.toString();
@@ -299,10 +289,7 @@ bot.command('rename', async (ctx) => {
 });
 
 // --- TOMBOL ACTION HANDLER ---
-bot.action('action_cek_antrian', (ctx) => {
-    ctx.answerCbQuery();
-    handleCekAntrian(ctx);
-});
+bot.action('action_cek_antrian', (ctx) => { ctx.answerCbQuery(); handleCekAntrian(ctx); });
 
 bot.action('action_run_bot', async (ctx) => {
     ctx.answerCbQuery();
@@ -335,13 +322,8 @@ bot.action('action_menu_bot', (ctx) => {
         parse_mode: 'HTML',
         reply_markup: {
             inline_keyboard: [
-                [
-                    buildBtn('🚀 RUN SYSTEM', 'action_run_bot', 'success'), 
-                    buildBtn('🌟 CEK ANTRIAN', 'action_cek_antrian', 'primary')
-                ],
-                [
-                    buildBtn('⬅️ KEMBALI KE BERANDA', 'action_back_home', 'danger')
-                ]
+                [buildBtn('🚀 RUN SYSTEM', 'action_run_bot', 'success'), buildBtn('🌟 CEK ANTRIAN', 'action_cek_antrian', 'primary')],
+                [buildBtn('⬅️ KEMBALI KE BERANDA', 'action_back_home', 'danger')]
             ]
         }
     }).catch(() => {});
@@ -350,18 +332,12 @@ bot.action('action_menu_bot', (ctx) => {
 bot.action('action_back_home', (ctx) => {
     ctx.answerCbQuery();
     const welcomeText = generateWelcomeText(ctx);
-
     ctx.editMessageText(welcomeText, { 
         parse_mode: 'HTML',
         reply_markup: {
             inline_keyboard: [
-                [
-                    buildBtn('🚀 RUN SYSTEM', 'action_run_bot', 'success'), 
-                    buildBtn('🌟 CEK ANTRIAN', 'action_cek_antrian', 'primary')
-                ],
-                [
-                    buildBtn('📖 MENU FITUR', 'action_menu_bot', 'primary')
-                ]
+                [buildBtn('🚀 RUN SYSTEM', 'action_run_bot', 'success'), buildBtn('🌟 CEK ANTRIAN', 'action_cek_antrian', 'primary')],
+                [buildBtn('📖 MENU FITUR', 'action_menu_bot', 'primary')]
             ]
         }
     }).catch(() => {});
@@ -370,26 +346,17 @@ bot.action('action_back_home', (ctx) => {
 // --- DOCUMENT HANDLER UNTUK REBRANDING ---
 bot.on('document', async (ctx, next) => {
     const currentUserId = ctx.from.id.toString();
-    
     if (userStates[currentUserId] === 'AWAITING_RENAME_FILE') {
         const doc = ctx.message.document;
-        if (!doc.file_name.endsWith('.js')) {
-            return ctx.reply("⚠️ Harap kirimkan file berekstensi .js!");
-        }
+        if (!doc.file_name.endsWith('.js')) return ctx.reply("⚠️ Harap kirimkan file berekstensi .js!");
         
         try {
             const fileLink = await ctx.telegram.getFileLink(doc.file_id);
             const response = await axios.get(fileLink.href, { responseType: 'text' });
-            
             renameCache[currentUserId] = response.data;
             userStates[currentUserId] = 'AWAITING_RENAME_DATA';
-            
-            const petunjuk = `✅ <b>File berhasil diunggah!</b>\n\nSekarang kirimkan format data pengganti dengan pemisah garis vertikal <code>|</code>\n\n<b>Format:</b>\n<code>[Owner ID] | [Nama Branding] | [@Username_Bot_Admin]</code>\n\n<b>Contoh:</b>\n<code>987654321 | BINTANG | @bintang_bot</code>`;
-            
-            return ctx.reply(petunjuk, { parse_mode: 'HTML' });
-        } catch (error) {
-            return ctx.reply("❌ Gagal mengunduh dan membaca file.");
-        }
+            return ctx.reply(`✅ <b>File berhasil diunggah!</b>\n\nSekarang kirimkan format data pengganti dengan pemisah garis vertikal <code>|</code>\n\n<b>Format:</b>\n<code>[Owner ID] | [Nama Branding] | [@Username_Bot_Admin]</code>\n\n<b>Contoh:</b>\n<code>987654321 | BINTANG | @bintang_bot</code>`, { parse_mode: 'HTML' });
+        } catch (error) { return ctx.reply("❌ Gagal mengunduh dan membaca file."); }
     }
     return next();
 });
@@ -398,31 +365,20 @@ bot.on('document', async (ctx, next) => {
 bot.on('text', async (ctx, next) => {
     const currentUserId = ctx.from.id.toString();
     
-    // Handler Input Hit
     if (userStates[currentUserId] === 'AWAITING_HIT_COUNT') {
-        const inputStr = ctx.message.text.trim();
-        const targetCount = parseInt(inputStr);
-        
-        if (isNaN(targetCount) || targetCount <= 0) {
-            return ctx.reply('⚠️ <b>Input Invalid</b>\nSistem hanya menerima input numerik. Silakan kirim ulang angka dengan benar. (Contoh: 5)', { parse_mode: 'HTML' });
-        }
+        const targetCount = parseInt(ctx.message.text.trim());
+        if (isNaN(targetCount) || targetCount <= 0) return ctx.reply('⚠️ <b>Input Invalid</b>\nSistem hanya menerima input numerik. Silakan kirim ulang angka dengan benar. (Contoh: 5)', { parse_mode: 'HTML' });
         
         delete userStates[currentUserId];
         let targetTotal = targetCount > 100 ? 100 : targetCount;
-        
         await ctx.reply(`✅ <b>Otorisasi Target: ${targetTotal} Data</b>\nSistem sedang menyiapkan resource komputasi...`, { parse_mode: 'HTML' });
         handleHitQueue(ctx, currentUserId, targetTotal);
         return;
     }
     
-    // Handler Input Data Rebranding
     if (userStates[currentUserId] === 'AWAITING_RENAME_DATA') {
-        const inputStr = ctx.message.text.trim();
-        const parts = inputStr.split('|').map(s => s.trim());
-        
-        if (parts.length !== 3) {
-            return ctx.reply("⚠️ <b>Format Salah!</b>\nPastikan memisahkan 3 data dengan tanda | \nContoh: <code>987654321 | BINTANG | @bintang_bot</code>", { parse_mode: 'HTML' });
-        }
+        const parts = ctx.message.text.trim().split('|').map(s => s.trim());
+        if (parts.length !== 3) return ctx.reply("⚠️ <b>Format Salah!</b>\nPastikan memisahkan 3 data dengan tanda | \nContoh: <code>987654321 | BINTANG | @bintang_bot</code>", { parse_mode: 'HTML' });
         
         const [newOwnerId, newBrand, newBotUsername] = parts;
         let content = renameCache[currentUserId];
@@ -432,23 +388,11 @@ bot.on('text', async (ctx, next) => {
         content = content.replace(/@AGASTRAConvert_bot/gi, newBotUsername);
         
         const fileBuffer = Buffer.from(content, 'utf8');
-        
-        const caption = `✅ <b>PROSES REBRANDING SELESAI</b>\n━━━━━━━━━━━━━━━━━━━━━\n` +
-                        `👤 <b>Owner ID:</b> <code>${newOwnerId}</code>\n` +
-                        `🏷 <b>Branding:</b> <code>${newBrand}</code>\n` +
-                        `🤖 <b>Bot Admin:</b> <code>${newBotUsername}</code>\n\n` +
-                        `<i>File telah berhasil dimodifikasi dan siap diserahkan kepada klien.</i>`;
+        const caption = `✅ <b>PROSES REBRANDING SELESAI</b>\n━━━━━━━━━━━━━━━━━━━━━\n👤 <b>Owner ID:</b> <code>${newOwnerId}</code>\n🏷 <b>Branding:</b> <code>${newBrand}</code>\n🤖 <b>Bot Admin:</b> <code>${newBotUsername}</code>\n\n<i>File telah berhasil dimodifikasi dan siap diserahkan kepada klien.</i>`;
                         
-        await ctx.replyWithDocument(
-            { source: fileBuffer, filename: 'index.js' },
-            { caption: caption, parse_mode: 'HTML' }
-        );
-        
-        delete userStates[currentUserId];
-        delete renameCache[currentUserId];
-        return;
+        await ctx.replyWithDocument({ source: fileBuffer, filename: 'index.js' }, { caption: caption, parse_mode: 'HTML' });
+        delete userStates[currentUserId]; delete renameCache[currentUserId]; return;
     }
-    
     return next();
 });
 
@@ -481,13 +425,7 @@ async function processNextHit() {
             globalAccountIndex = (globalAccountIndex + 1) % accounts.length; 
             akunDicoba++;
 
-            const layoutScraping = `<b>[ STATUS PROSES HIT ]</b>\n` +
-`<pre>[Sistem] Menginisialisasi otomatisasi...
-[Target] Memproses akun ke-${akunDicoba} dari ${accounts.length}
-[Akun]   Mencoba otorisasi: ${account.username}
-[Aksi]   Sedang login dan memverifikasi akses...
-[Result] Terkumpul: ${allResults.length} / ${targetTotal} Sesi</pre>`;
-
+            const layoutScraping = `<b>[ STATUS PROSES HIT ]</b>\n<pre>[Sistem] Menginisialisasi otomatisasi...\n[Target] Memproses akun ke-${akunDicoba} dari ${accounts.length}\n[Akun]   Mencoba otorisasi: ${account.username}\n[Aksi]   Sedang login dan memverifikasi akses...\n[Result] Terkumpul: ${allResults.length} / ${targetTotal} Sesi</pre>`;
             await ctx.telegram.editMessageText(ctx.chat.id, statusMsg.message_id, null, layoutScraping, { parse_mode: 'HTML' }).catch(()=>{});
             
             let context = null, page = null;
@@ -499,20 +437,23 @@ async function processNextHit() {
                 });
                 page = await context.newPage();
                 
-                await page.goto('https://kxntu.com/login', { waitUntil: 'domcontentloaded', timeout: 30000 });
+                // MENGUBAH ALUR LOGIN AGAR TIDAK MACET DI TENGAH JALAN
+                await page.goto('https://kxntu.com/login', { waitUntil: 'domcontentloaded', timeout: 15000 });
                 await page.fill('#l-username', account.username);
                 await page.fill('#l-password', account.password); 
+                await page.click('button[type="submit"].btn-primary');
+                
+                await page.waitForTimeout(3000); // Tunggu sebentar agar server memproses login
+                await page.goto('https://kxntu.com/generar', { waitUntil: 'domcontentloaded', timeout: 15000 });
 
-                await Promise.all([
-                    page.waitForNavigation({ waitUntil: 'domcontentloaded', timeout: 30000 }).catch(() => {}),
-                    page.click('button[type="submit"].btn-primary')
-                ]);
-
-                await page.goto('https://kxntu.com/generar', { waitUntil: 'domcontentloaded', timeout: 30000 });
+                // VERIFIKASI LOGIN: Kalau tombol gerar tidak ada, berarti akun mati / limit harian login
+                const isLoginSuccess = await page.$('#btn-link').catch(()=>null);
+                if (!isLoginSuccess) throw new Error("Akun mati atau gagal memuat halaman generator.");
 
                 let startHitTime = Date.now();
                 let lastLink = ''; 
-                let duplicateRetries = 0; // Tambahan variabel pembatas
+                let duplicateRetries = 0;
+                let emptyLinkRetries = 0; // DETEKSI AKUN LIMIT
 
                 while (true) {
                     if (targetTotal > 0 && allResults.length >= targetTotal) break;
@@ -521,15 +462,22 @@ async function processNextHit() {
                     await page.waitForTimeout(800); 
 
                     const link = await getLinkFromCodeboxGen(page);
-                    if (!link) break; 
+                    
+                    // JIKA TIDAK ADA LINK MUNCUL (AKUN LIMIT / HABIS SALDO)
+                    if (!link) {
+                        emptyLinkRetries++;
+                        if (emptyLinkRetries >= 2) break; // Jika 2x klik tidak muncul kotak link, langsung ganti akun
+                        continue; 
+                    }
+                    emptyLinkRetries = 0; // Reset jika link berhasil didapat
                     
                     if (link === lastLink) {
                         duplicateRetries++;
-                        if (duplicateRetries >= 5) break; // Keluar paksa jika macet 5x
+                        if (duplicateRetries >= 5) break; 
                         await page.waitForTimeout(1000);
                         continue;
                     }
-                    duplicateRetries = 0; // Reset jika link baru berhasil didapat
+                    duplicateRetries = 0; 
                     lastLink = link;
 
                     if (await checkPartnerGen(page)) { await page.waitForTimeout(500); continue; }
@@ -553,40 +501,20 @@ async function processNextHit() {
                     allResults.push({ cookie: activeCookie, country: formattedCountry, plan: hitPlan });
                     currentTaskDetail.currentCount = allResults.length;
                     
-                    // --- UPDATE STATISTIK REAL-TIME ---
                     const timeTakenMs = Date.now() - startHitTime;
                     const todayDate = new Date().toLocaleDateString('id-ID', { timeZone: 'Asia/Jakarta' });
                     
-                    if (systemStats.lastDate !== todayDate) {
-                        systemStats.cookiesToday = 0;
-                        systemStats.lastDate = todayDate;
-                    }
-
-                    systemStats.totalCookies++;
-                    systemStats.cookiesToday++;
-                    systemStats.totalTimeSeconds += (timeTakenMs / 1000);
-                    systemStats.totalCookiesForSpeed++;
+                    if (systemStats.lastDate !== todayDate) { systemStats.cookiesToday = 0; systemStats.lastDate = todayDate; }
+                    systemStats.totalCookies++; systemStats.cookiesToday++; systemStats.totalTimeSeconds += (timeTakenMs / 1000); systemStats.totalCookiesForSpeed++;
                     saveStats();
-
                     startHitTime = Date.now();
 
-                    const layoutProgress = `<b>[ STATUS PROSES HIT ]</b>\n` +
-`<pre>[Sistem] Sesi login valid terdeteksi...
-[Target] Memproses akun ke-${akunDicoba} dari ${accounts.length}
-[Akun]   Berhasil diakses: ${account.username}
-[Aksi]   🟢 [SUKSES] Ekstrak sesi live...
-[Result] Terkumpul: ${allResults.length} / ${targetTotal} Sesi</pre>`;
-
+                    const layoutProgress = `<b>[ STATUS PROSES HIT ]</b>\n<pre>[Sistem] Sesi login valid terdeteksi...\n[Target] Memproses akun ke-${akunDicoba} dari ${accounts.length}\n[Akun]   Berhasil diakses: ${account.username}\n[Aksi]   🟢 [SUKSES] Ekstrak sesi live...\n[Result] Terkumpul: ${allResults.length} / ${targetTotal} Sesi</pre>`;
                     await ctx.telegram.editMessageText(ctx.chat.id, statusMsg.message_id, null, layoutProgress, { parse_mode: 'HTML' }).catch(()=>{});
                 } 
             } catch (error) {
                 console.log(`[Error Ekstraktor] Akun ${account.username}:`, error.message);
-                const layoutError = `<b>[ STATUS PROSES HIT ]</b>\n` +
-`<pre>[Sistem] Melewati akun bermasalah...
-[Target] Memproses akun ke-${akunDicoba} dari ${accounts.length}
-[Akun]   Gagal diakses: ${account.username}
-[Aksi]   ⚠️ [SKIP] Timeout / Web Error / Akun Mati
-[Result] Terkumpul: ${allResults.length} / ${targetTotal} Sesi</pre>`;
+                const layoutError = `<b>[ STATUS PROSES HIT ]</b>\n<pre>[Sistem] Melewati akun bermasalah...\n[Target] Memproses akun ke-${akunDicoba} dari ${accounts.length}\n[Akun]   Gagal diakses: ${account.username}\n[Aksi]   ⚠️ [SKIP] Timeout / Web Error / Akun Mati/Limit\n[Result] Terkumpul: ${allResults.length} / ${targetTotal} Sesi</pre>`;
                 await ctx.telegram.editMessageText(ctx.chat.id, statusMsg.message_id, null, layoutError, { parse_mode: 'HTML' }).catch(()=>{});
                 await new Promise(r => setTimeout(r, 1500));
             } 
@@ -596,39 +524,23 @@ async function processNextHit() {
         await ctx.telegram.deleteMessage(ctx.chat.id, statusMsg.message_id).catch(() => {});
 
         if (allResults.length > 0) {
-            const countryCounts = {};
-            const planCounts = {};
+            const countryCounts = {}; const planCounts = {};
             allResults.forEach(item => {
-                const cLabel = item.country || 'Not Detected';
-                countryCounts[cLabel] = (countryCounts[cLabel] || 0) + 1;
-                const pLabel = item.plan || 'Netflix Plan';
-                planCounts[pLabel] = (planCounts[pLabel] || 0) + 1;
+                countryCounts[item.country || 'Not Detected'] = (countryCounts[item.country || 'Not Detected'] || 0) + 1;
+                planCounts[item.plan || 'Netflix Plan'] = (planCounts[item.plan || 'Netflix Plan'] || 0) + 1;
             });
             const countriesSummary = Object.entries(countryCounts).map(([name, count]) => `${name} ${count}`).join(' | ');
             const plansSummary = Object.entries(planCounts).map(([name, count]) => `${name} ${count}`).join(' | ');
 
-            const summaryLayout = 
-                `<blockquote>` +
-                `<b>Total Cookies Live :</b> <code>${allResults.length} Data Terverifikasi</code>\n` +
-                `<b>Distribusi Region  :</b> <code>${countriesSummary || 'Global / UN'}</code>\n` +
-                `<b>Rincian Paket      :</b> <code>${plansSummary || 'Netflix Plan'}</code>\n` +
-                `<b>Status Akhir       :</b> <code>Operasi Ekstraksi Berhasil</code>\n` +
-                `</blockquote>\n\n` +
-                `<b>Keterangan Tambahan:</b>\n` +
-                `<i>Sistem telah menyelesaikan tugas dengan sukses. Jika Anda membutuhkan standarisasi format atau verifikasi live/dead lanjutan, silakan teruskan file output di bawah ini ke bot manajemen @AGASTRAConvert_bot agar diproses lebih lanjut.</i>`;
+            const summaryLayout = `<blockquote><b>Total Cookies Live :</b> <code>${allResults.length} Data Terverifikasi</code>\n<b>Distribusi Region  :</b> <code>${countriesSummary || 'Global / UN'}</code>\n<b>Rincian Paket      :</b> <code>${plansSummary || 'Netflix Plan'}</code>\n<b>Status Akhir       :</b> <code>Operasi Ekstraksi Berhasil</code>\n</blockquote>\n\n<b>Keterangan Tambahan:</b>\n<i>Sistem telah menyelesaikan tugas dengan sukses. Jika Anda membutuhkan standarisasi format atau verifikasi live/dead lanjutan, silakan teruskan file output di bawah ini ke bot manajemen @AGASTRAConvert_bot agar diproses lebih lanjut.</i>`;
             
             await ctx.reply(summaryLayout, { parse_mode: 'HTML' });
 
             const textContent = allResults.map(item => item.cookie).join('\n');
             const fileBuffer = Buffer.from(textContent, 'utf8');
-            await ctx.replyWithDocument(
-                { source: fileBuffer, filename: 'AGASTRA_Extracted_Live.txt' }, 
-                { caption: `📁 <b>Report Output: ${allResults.length} Data (Live)</b>\n\n📌 <i>Berkas ini berisi data sesi murni (raw cookies) yang dienkripsi oleh sistem.</i>`, parse_mode: 'HTML' }
-            );
+            await ctx.replyWithDocument({ source: fileBuffer, filename: 'AGASTRA_Extracted_Live.txt' }, { caption: `📁 <b>Report Output: ${allResults.length} Data (Live)</b>\n\n📌 <i>Berkas ini berisi data sesi murni (raw cookies) yang dienkripsi oleh sistem.</i>`, parse_mode: 'HTML' });
 
-            if (allResults.length < targetTotal) {
-                await ctx.reply(`⚠️ <b>Informasi:</b> Target ${targetTotal} data tidak terpenuhi sepenuhnya. Sistem hanya berhasil mengekstrak ${allResults.length} data hidup (sisa akun di database mati/limit).`, { parse_mode: 'HTML' });
-            }
+            if (allResults.length < targetTotal) await ctx.reply(`⚠️ <b>Informasi:</b> Target ${targetTotal} data tidak terpenuhi sepenuhnya. Sistem hanya berhasil mengekstrak ${allResults.length} data hidup (sisa akun di database mati/limit).`, { parse_mode: 'HTML' });
         } else {
             bot.telegram.sendMessage(OWNER_ID, `⚠️ <b>ALERT OWNER:</b> Ekstraksi gagal total. Kemungkinan akun limit atau struktur web berubah.`, { parse_mode: 'HTML' }).catch(()=>{});
             await ctx.reply(`⚠️ <b>Kegagalan Sistem:</b> Tidak berhasil menarik cookie sama sekali. Pastikan akun di dalam database valid atau struktur web generator belum berubah.`, { parse_mode: 'HTML' });
@@ -643,7 +555,6 @@ async function processNextHit() {
     }
 }
 
-// --- COMMAND VIP & BROADCAST ---
 bot.command('addvip', async (ctx) => {
     if (ctx.from.id.toString() !== OWNER_ID.toString()) return ctx.reply("❌ Otorisasi Ditolak!");
     const args = ctx.message.text.split(' ');
@@ -681,23 +592,13 @@ bot.command('bc', async (ctx) => {
     if (ctx.from.id.toString() !== OWNER_ID.toString()) return;
     const messageText = ctx.message.text.split(' ').slice(1).join(' ');
     if (!messageText) return ctx.reply('⚠️ Format Perintah: <code>/bc [Pesan Siaran]</code>', { parse_mode: 'HTML' });
-
-    const users = loadUsers();
-    let successCount = 0;
-    let failCount = 0;
-    
+    const users = loadUsers(); let successCount = 0; let failCount = 0;
     const statusMsg = await ctx.reply(`🔄 <i>Sistem sedang mendistribusikan pesan ke ${users.length} pengguna...</i>`, { parse_mode: 'HTML' });
-
     for (const user of users) {
-        try {
-            await bot.telegram.sendMessage(user.id, `📢 <b>INFORMASI SISTEM</b>\n━━━━━━━━━━━━━━━━━━━━━\n\n${messageText}`, { parse_mode: 'HTML' });
-            successCount++;
-        } catch (error) {
-            failCount++;
-        }
+        try { await bot.telegram.sendMessage(user.id, `📢 <b>INFORMASI SISTEM</b>\n━━━━━━━━━━━━━━━━━━━━━\n\n${messageText}`, { parse_mode: 'HTML' }); successCount++; } 
+        catch (error) { failCount++; }
         await new Promise(resolve => setTimeout(resolve, 50)); 
     }
-
     await ctx.telegram.editMessageText(ctx.chat.id, statusMsg.message_id, null, `✅ <b>Operasi Siaran Selesai</b>\n\nBerhasil didistribusikan: <b>${successCount}</b> pengguna\nGagal (Blokir/Unreachable): <b>${failCount}</b> pengguna`, { parse_mode: 'HTML' });
 });
 

@@ -1,10 +1,5 @@
-san01:masuk123
-san02:masuk123
-san03:masuk123
-san04:masuk123
-san05:masuk123
-san06:masuk123
-san07:masuk123
-san08:masuk123
-san09:masuk123
-san10:masuk123
+indo01:masuk123
+indo02:masuk123
+indo03:masuk123
+indo04:masuk123
+indo05:masuk123

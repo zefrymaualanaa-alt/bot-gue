@@ -1,3 +1,13 @@
+wa01:masuk123
+wa02:masuk123
+wa03:masuk123
+wa04:masuk123
+wa05:masuk123
+wa06:masuk123
+wa07:masuk123
+wa08:masuk123
+wa09:masuk123
+wa10:masuk123
 wowo01:masuk123
 wowo02:masuk123
 wowo03:masuk123

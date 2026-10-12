@@ -370,7 +370,7 @@ bot.on('text', async (ctx, next) => {
         if (isNaN(targetCount) || targetCount <= 0) return ctx.reply('⚠️ <b>Input Invalid</b>\nSistem hanya menerima input numerik. Silakan kirim ulang angka dengan benar. (Contoh: 5)', { parse_mode: 'HTML' });
         
         delete userStates[currentUserId];
-        let targetTotal = targetCount > 100 ? 100 : targetCount;
+        let targetTotal = targetCount > 20 ? 20 : targetCount;
         await ctx.reply(`✅ <b>Otorisasi Target: ${targetTotal} Data</b>\nSistem sedang menyiapkan resource komputasi...`, { parse_mode: 'HTML' });
         handleHitQueue(ctx, currentUserId, targetTotal);
         return;

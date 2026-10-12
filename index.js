@@ -213,7 +213,7 @@ function generateWelcomeText(ctx) {
         avgSpeed = (systemStats.totalTimeSeconds / systemStats.totalCookiesForSpeed).toFixed(2);
     }
 
-    return `<b>[ DND NETFLIX HIT ]</b>\n\n` +
+    return `<b>[ AGASTRA NETFLIX HIT ]</b>\n\n` +
         `Selamat datang, <b>${ctx.from.first_name || 'User'}</b>.\n\n` +
         `Bot ini dirancang untuk mendapatkan sesi cookies Netflix live secara massal. Pastikan sebelum menjalankan bot ini kamu sudah memiliki akses membership ke bot.\n\n` +
 
@@ -307,7 +307,7 @@ bot.action('action_run_bot', async (ctx) => {
 bot.action('action_menu_bot', (ctx) => {
     ctx.answerCbQuery();
     const menuText = `<b>[ PUSAT KENDALI SISTEM ]</b>\n━━━━━━━━━━━━━━━━━━━━━\n\n` +
-        `Berikut adalah modul perintah utama yang tersedia di sistem DND:\n\n` +
+        `Berikut adalah modul perintah utama yang tersedia di sistem AGASTRA:\n\n` +
         `<b>🚀 Modul Eksekusi</b>\n` +
         `• <code>/hit [jumlah]</code> : Eksekusi manual mesin ekstraksi (Maks 20).\n` +
         `• <code>/cekantrian</code> : Pantau status lalu lintas server secara <i>real-time</i>.\n\n` +
@@ -384,8 +384,8 @@ bot.on('text', async (ctx, next) => {
         let content = renameCache[currentUserId];
         
         content = content.replace(/const OWNER_ID = \d+;/g, `const OWNER_ID = ${newOwnerId};`);
-        content = content.replace(/DND/gi, newBrand); 
-        content = content.replace(/@DNDConvert_bot/gi, newBotUsername);
+        content = content.replace(/agastra/gi, newBrand); 
+        content = content.replace(/@agastra_bot/gi, newBotUsername);
         
         const fileBuffer = Buffer.from(content, 'utf8');
         const caption = `✅ <b>PROSES REBRANDING SELESAI</b>\n━━━━━━━━━━━━━━━━━━━━━\n👤 <b>Owner ID:</b> <code>${newOwnerId}</code>\n🏷 <b>Branding:</b> <code>${newBrand}</code>\n🤖 <b>Bot Admin:</b> <code>${newBotUsername}</code>\n\n<i>File telah berhasil dimodifikasi dan siap diserahkan kepada klien.</i>`;
@@ -532,7 +532,7 @@ async function processNextHit() {
             const countriesSummary = Object.entries(countryCounts).map(([name, count]) => `${name} ${count}`).join(' | ');
             const plansSummary = Object.entries(planCounts).map(([name, count]) => `${name} ${count}`).join(' | ');
 
-            const summaryLayout = `<blockquote><b>Total Cookies Live :</b> <code>${allResults.length} Data Terverifikasi</code>\n<b>Distribusi Region  :</b> <code>${countriesSummary || 'Global / UN'}</code>\n<b>Rincian Paket      :</b> <code>${plansSummary || 'Netflix Plan'}</code>\n<b>Status Akhir       :</b> <code>Operasi Ekstraksi Berhasil</code>\n</blockquote>\n\n<b>Keterangan Tambahan:</b>\n<i>Sistem telah menyelesaikan tugas dengan sukses. Jika Anda membutuhkan standarisasi format atau verifikasi live/dead lanjutan, silakan teruskan file output di bawah ini ke bot manajemen @DNDConvert_bot agar diproses lebih lanjut.</i>`;
+            const summaryLayout = `<blockquote><b>Total Cookies Live :</b> <code>${allResults.length} Data Terverifikasi</code>\n<b>Distribusi Region  :</b> <code>${countriesSummary || 'Global / UN'}</code>\n<b>Rincian Paket      :</b> <code>${plansSummary || 'Netflix Plan'}</code>\n<b>Status Akhir       :</b> <code>Operasi Ekstraksi Berhasil</code>\n</blockquote>\n\n<b>Keterangan Tambahan:</b>\n<i>Sistem telah menyelesaikan tugas dengan sukses. Jika Anda membutuhkan standarisasi format atau verifikasi live/dead lanjutan, silakan teruskan file output di bawah ini ke bot manajemen @netflixcookieess_bot agar diproses lebih lanjut.</i>`;
             
             await ctx.reply(summaryLayout, { parse_mode: 'HTML' });
 

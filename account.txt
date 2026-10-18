@@ -1,3 +1,8 @@
+cap01:masuk123
+cap02:masuk123
+cap03:masuk123
+cap04:masuk123
+cap05:masuk123
 ros01:masuk123
 ros02:masuk123
 ros03:masuk123
